@@ -7,3 +7,7 @@ tests/
 .claude/
 docs/
 config.yaml
+config.example.yaml
+docker-compose.yaml
+vitest.config.ts
+*.md
