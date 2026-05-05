@@ -6,4 +6,5 @@ services:
       - ./config.yaml:/app/config.yaml:ro
     environment:
       - CONFIG_PATH=/app/config.yaml
+      - LOG_LEVEL=info  # debug | info | warn | error
     restart: unless-stopped

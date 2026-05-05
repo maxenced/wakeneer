@@ -2,12 +2,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { pingHost } from '../../src/monitor/ping.js';
 
 vi.mock('ping', () => ({
+  default: {
+    promise: {
+      probe: vi.fn(),
+    },
+  },
   promise: {
     probe: vi.fn(),
   },
 }));
 
-import { promise as pingPromise } from 'ping';
+import pkg from 'ping';
+const pingPromise = pkg.promise;
 
 describe('pingHost', () => {
   it('returns true when host is reachable', async () => {

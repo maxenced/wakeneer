@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { pingHost } from './ping.js';
 import { checkHttp } from './http-check.js';
+import { logger } from '../logger.js';
 
 export type ServiceStatus = 'down' | 'starting' | 'ready';
 
@@ -89,6 +90,7 @@ export class Monitor extends EventEmitter {
     }
 
     if (newStatus !== state.status) {
+      logger.info('Service status changed', { service: service.name, from: state.status, to: newStatus });
       state.status = newStatus;
       this.emit('statusChange', service.name, newStatus);
     }

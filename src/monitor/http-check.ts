@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 export async function checkHttp(url: string, timeoutSeconds = 5): Promise<boolean> {
   try {
     const controller = new AbortController();
@@ -7,8 +9,11 @@ export async function checkHttp(url: string, timeoutSeconds = 5): Promise<boolea
       redirect: 'manual',
     });
     clearTimeout(timeout);
-    return response.status < 400;
-  } catch {
+    const ok = response.status < 400;
+    logger.debug('HTTP check', { url, status: response.status, ok });
+    return ok;
+  } catch (err) {
+    logger.debug('HTTP check failed', { url, error: (err as Error).message });
     return false;
   }
 }

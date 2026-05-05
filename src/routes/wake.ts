@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Monitor } from '../monitor/monitor.js';
 import { sendWol } from '../wol/wol.js';
+import { logger } from '../logger.js';
 
 interface ServiceConfig {
   name: string;
@@ -18,8 +19,10 @@ export function createWakeRoutes(monitor: Monitor, services: ServiceConfig[]): R
       res.status(404).send('Service not found');
       return;
     }
+    const user = (req as any).user;
     const status = monitor.getStatus(service.name);
     if (status !== 'ready') {
+      logger.info('Wake triggered', { service: service.name, by: user?.email });
       await sendWol(service.mac);
     }
     res.redirect(`/wait/${service.name}`);
