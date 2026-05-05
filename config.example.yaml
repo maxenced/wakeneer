@@ -1,0 +1,29 @@
+server:
+  port: 3000
+  sessionSecret: "change-me-to-a-random-string"
+
+auth:
+  providers:
+    - type: "google"
+      clientId: "your-google-client-id.apps.googleusercontent.com"
+      clientSecret: "your-google-client-secret"
+    # - type: "microsoft"
+    #   clientId: "your-microsoft-client-id"
+    #   clientSecret: "your-microsoft-client-secret"
+    #   tenantId: "common"
+  callbackBaseUrl: "http://localhost:3000"
+  allowedEmails:
+    - "you@example.com"
+
+services:
+  - name: "Plex"
+    host: "192.168.1.10"
+    mac: "AA:BB:CC:DD:EE:FF"
+    url: "http://192.168.1.10:32400/web"
+  - name: "Nextcloud"
+    host: "192.168.1.11"
+    mac: "11:22:33:44:55:66"
+    url: "https://cloud.example.com"
+
+polling:
+  intervalSeconds: 30
