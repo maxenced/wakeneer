@@ -2,3 +2,5 @@ node_modules/
 dist/
 config.yaml
 *.log
+.claude/
+docs/superpowers/
