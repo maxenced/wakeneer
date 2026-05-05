@@ -30,6 +30,18 @@ docker compose up -d --build
 
 The container uses `network_mode: host` so WoL broadcast packets reach your LAN. The app listens on port 3000 by default.
 
+### Logging
+
+Set the `LOG_LEVEL` environment variable to control verbosity:
+
+```yaml
+environment:
+  - LOG_LEVEL=debug  # debug | info | warn | error (default: info)
+```
+
+- `info` — logins, wake triggers, service status changes
+- `debug` — all of the above + every ping/HTTP check result and WoL packet details
+
 ### Reverse proxy
 
 Put it behind nginx/Caddy/Traefik with HTTPS. Example Caddy:
