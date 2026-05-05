@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import express from 'express';
-import request from 'supertest';
+import http from 'node:http';
 import { EventEmitter } from 'node:events';
 import { createSseRoutes } from '../../src/routes/sse.js';
 
@@ -14,43 +14,56 @@ class MockMonitor extends EventEmitter {
 }
 
 describe('SSE routes', () => {
-  it('GET /sse/all returns event-stream content type', async () => {
+  it('GET /sse/all returns event-stream content type and initial data', async () => {
     const monitor = new MockMonitor();
     const app = express();
     app.use('/', createSseRoutes(monitor as any));
+    const server = http.createServer(app);
 
-    const res = await request(app)
-      .get('/sse/all')
-      .buffer(true)
-      .parse((res, callback) => {
-        let data = '';
-        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const port = (server.address() as any).port;
+
+    const data = await new Promise<string>((resolve, reject) => {
+      const req = http.get(`http://localhost:${port}/sse/all`, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk.toString(); });
         setTimeout(() => {
-          res.emit('end');
-          callback(null, data);
+          req.destroy();
+          resolve(body);
         }, 50);
       });
+      req.on('error', () => {});
+    });
 
-    expect(res.headers['content-type']).toContain('text/event-stream');
+    expect(data).toContain('data:');
+    expect(data).toContain('"type":"init"');
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
   it('GET /sse/:service sends initial status', async () => {
     const monitor = new MockMonitor();
     const app = express();
     app.use('/', createSseRoutes(monitor as any));
+    const server = http.createServer(app);
 
-    const res = await request(app)
-      .get('/sse/Plex')
-      .buffer(true)
-      .parse((res, callback) => {
-        let data = '';
-        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const port = (server.address() as any).port;
+
+    const data = await new Promise<string>((resolve, reject) => {
+      const req = http.get(`http://localhost:${port}/sse/Plex`, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk.toString(); });
         setTimeout(() => {
-          res.emit('end');
-          callback(null, data);
+          req.destroy();
+          resolve(body);
         }, 50);
       });
+      req.on('error', () => {});
+    });
 
-    expect(res.body).toContain('data:');
+    expect(data).toContain('data:');
+    expect(data).toContain('"name":"Plex"');
+    expect(data).toContain('"status":"down"');
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 });
