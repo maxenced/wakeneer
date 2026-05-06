@@ -4,11 +4,27 @@ import yaml from 'js-yaml';
 
 const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
 
+const authorizationSchema = z
+  .object({
+    allowedEmails: z.array(z.string().email()).optional(),
+    allowedClaim: z
+      .object({
+        name: z.string(),
+        values: z.array(z.string()).min(1),
+      })
+      .optional(),
+  })
+  .refine((data) => data.allowedEmails !== undefined || data.allowedClaim !== undefined, {
+    message: 'At least one of allowedEmails or allowedClaim must be provided',
+  });
+
 const providerSchema = z.object({
-  type: z.string(),
+  name: z.string(),
+  discoveryUrl: z.string().url(),
   clientId: z.string(),
   clientSecret: z.string(),
-  tenantId: z.string().optional(),
+  scopes: z.array(z.string()).default(['openid', 'email', 'profile']),
+  authorization: authorizationSchema,
 });
 
 const serviceSchema = z.object({
@@ -26,14 +42,16 @@ export const configSchema = z.object({
   auth: z.object({
     providers: z.array(providerSchema).min(1),
     callbackBaseUrl: z.string().url(),
-    allowedEmails: z.array(z.string().email()),
   }),
   services: z.array(serviceSchema).min(1),
-  polling: z.object({
-    intervalSeconds: z.number().default(30),
-  }).default({ intervalSeconds: 30 }),
+  polling: z
+    .object({
+      intervalSeconds: z.number().default(30),
+    })
+    .default({ intervalSeconds: 30 }),
 });
 
+export type ProviderConfig = z.infer<typeof providerSchema>;
 export type AppConfig = z.infer<typeof configSchema>;
 
 export function loadConfig(path: string): AppConfig {
