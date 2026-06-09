@@ -1,12 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { isAuthenticated, isAllowed } from '../../src/auth/middleware.js';
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 
-function mockReq(overrides: Partial<Request> = {}): Request {
+function mockReq(sessionUser?: Record<string, unknown>): Request {
   return {
-    isAuthenticated: () => false,
-    user: undefined,
-    ...overrides,
+    session: sessionUser ? { user: sessionUser } : {},
   } as unknown as Request;
 }
 
@@ -20,16 +18,16 @@ function mockRes(): Response {
 }
 
 describe('isAuthenticated', () => {
-  it('calls next when user is authenticated', () => {
-    const req = mockReq({ isAuthenticated: () => true });
+  it('calls next when session has user', () => {
+    const req = mockReq({ email: 'a@b.com', displayName: 'A', provider: 'x', claims: {} });
     const res = mockRes();
     const next = vi.fn();
     isAuthenticated(req, res, next);
     expect(next).toHaveBeenCalled();
   });
 
-  it('redirects to /auth/login when not authenticated', () => {
-    const req = mockReq({ isAuthenticated: () => false });
+  it('redirects to /auth/login when no session user', () => {
+    const req = mockReq();
     const res = mockRes();
     const next = vi.fn();
     isAuthenticated(req, res, next);
@@ -39,12 +37,22 @@ describe('isAuthenticated', () => {
 });
 
 describe('isAllowed', () => {
-  it('calls next when user email is in allowlist', () => {
-    const allowedEmails = ['alice@example.com', 'bob@example.com'];
-    const middleware = isAllowed(allowedEmails);
+  it('allows when email is in allowedEmails', () => {
+    const middleware = isAllowed({ allowedEmails: ['alice@example.com'] });
+    const req = mockReq({ email: 'alice@example.com', claims: {} });
+    const res = mockRes();
+    const next = vi.fn();
+    middleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('allows when claim matches allowedClaim', () => {
+    const middleware = isAllowed({
+      allowedClaim: { name: 'groups', values: ['wakeonlan-users'] },
+    });
     const req = mockReq({
-      isAuthenticated: () => true,
-      user: { email: 'alice@example.com' } as any,
+      email: 'unknown@example.com',
+      claims: { groups: ['wakeonlan-users', 'other'] },
     });
     const res = mockRes();
     const next = vi.fn();
@@ -52,12 +60,25 @@ describe('isAllowed', () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it('renders denied page when email not in allowlist', () => {
-    const allowedEmails = ['alice@example.com'];
-    const middleware = isAllowed(allowedEmails);
+  it('allows when claim value is a string matching one of the configured values', () => {
+    const middleware = isAllowed({
+      allowedClaim: { name: 'role', values: ['admin'] },
+    });
+    const req = mockReq({ email: 'x@y.com', claims: { role: 'admin' } });
+    const res = mockRes();
+    const next = vi.fn();
+    middleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('denies when neither email nor claim matches', () => {
+    const middleware = isAllowed({
+      allowedEmails: ['alice@example.com'],
+      allowedClaim: { name: 'groups', values: ['admin'] },
+    });
     const req = mockReq({
-      isAuthenticated: () => true,
-      user: { email: 'eve@example.com' } as any,
+      email: 'eve@example.com',
+      claims: { groups: ['users'] },
     });
     const res = mockRes();
     const next = vi.fn();
@@ -65,5 +86,14 @@ describe('isAllowed', () => {
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.render).toHaveBeenCalledWith('denied');
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('allows when only allowedEmails is configured and matches', () => {
+    const middleware = isAllowed({ allowedEmails: ['bob@test.com'] });
+    const req = mockReq({ email: 'bob@test.com', claims: {} });
+    const res = mockRes();
+    const next = vi.fn();
+    middleware(req, res, next);
+    expect(next).toHaveBeenCalled();
   });
 });
