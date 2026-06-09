@@ -1,10 +1,9 @@
 import express from 'express';
 import session from 'express-session';
-import passport from 'passport';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AppConfig } from './config.js';
-import { configurePassport } from './auth/passport.js';
+import type { ProviderRegistry } from './auth/oidc.js';
 import { isAuthenticated, isAllowed } from './auth/middleware.js';
 import { Monitor } from './monitor/monitor.js';
 import { createAuthRoutes } from './routes/auth.js';
@@ -14,7 +13,7 @@ import { createSseRoutes } from './routes/sse.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp(config: AppConfig, monitor: Monitor): express.Express {
+export function createApp(config: AppConfig, monitor: Monitor, registry: ProviderRegistry): express.Express {
   const app = express();
 
   app.set('view engine', 'ejs');
@@ -31,14 +30,20 @@ export function createApp(config: AppConfig, monitor: Monitor): express.Express 
     }),
   );
 
-  app.use(passport.initialize());
-  app.use(passport.session());
+  const protect: express.RequestHandler[] = [
+    isAuthenticated,
+    (req, res, next) => {
+      const providerName = req.session.user!.provider;
+      const providerConfig = config.auth.providers.find((p) => p.name === providerName);
+      if (!providerConfig) {
+        res.status(403).render('denied');
+        return;
+      }
+      isAllowed(providerConfig.authorization)(req, res, next);
+    },
+  ];
 
-  configurePassport(config.auth.providers, config.auth.callbackBaseUrl);
-
-  const protect = [isAuthenticated, isAllowed(config.auth.allowedEmails)];
-
-  app.use('/auth', createAuthRoutes(config.auth.providers));
+  app.use('/auth', createAuthRoutes(registry));
   app.use('/', ...protect, createDashboardRoutes(monitor, config.services));
   app.use('/', ...protect, createWakeRoutes(monitor, config.services));
   app.use('/', ...protect, createSseRoutes(monitor));
