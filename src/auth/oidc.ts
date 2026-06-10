@@ -22,6 +22,7 @@ export async function initProviders(
         client_secret: providerConfig.clientSecret,
         redirect_uris: [`${callbackBaseUrl}/auth/${providerConfig.name}/callback`],
         response_types: ['code'],
+        token_endpoint_auth_method: providerConfig.tokenEndpointAuthMethod,
       });
       return { name: providerConfig.name, client, config: providerConfig };
     }),
