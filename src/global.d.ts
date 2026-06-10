@@ -1,1 +1,1 @@
-declare module 'passport-microsoft';
+export {};
