@@ -7,7 +7,7 @@ Wake-on-LAN web app with real-time status monitoring. Wake your servers from any
 ### Requirements
 
 - Docker on a machine on the same LAN as your target servers
-- A Google and/or Microsoft OAuth app for authentication
+- An OIDC-compatible identity provider (Google, Microsoft, Keycloak, Authelia, Authentik, etc.)
 
 ### Setup
 
@@ -17,10 +17,12 @@ cp config.example.yaml config.yaml
 
 Edit `config.yaml`:
 - Set a random `sessionSecret`
-- Add your OAuth provider credentials (Google: [console.cloud.google.com](https://console.cloud.google.com/apis/credentials), Microsoft: [portal.azure.com](https://portal.azure.com))
+- Add your OIDC provider(s): each provider needs a `name`, `discoveryUrl`, `clientId`, and `clientSecret`
 - Set `callbackBaseUrl` to your public URL (e.g. `https://wake.example.com`)
-- Add allowed user emails
+- Configure authorization per provider: either an `allowedEmails` list or an `allowedClaim` (match users by a specific token claim, e.g. groups)
 - Add your services (name, host IP, MAC address, service URL)
+
+The callback URL to register with your identity provider is: `<callbackBaseUrl>/auth/<provider-name>/callback`
 
 ### Run
 
@@ -78,15 +80,12 @@ npm run dev
 - `src/config.ts` — YAML config loading + Zod validation
 - `src/monitor/` — Background status checks (ping + HTTP)
 - `src/wol/` — Wake-on-LAN magic packet sender
-- `src/auth/` — Passport.js OAuth + email allowlist middleware
+- `src/auth/` — Generic OIDC authentication + authorization middleware
 - `src/routes/` — Express route handlers
 - `src/views/` — EJS templates
 - `public/` — Static assets (CSS, client JS)
 - `tests/` — Vitest test suite
 
-### Adding an OAuth provider
+### Adding an OIDC provider
 
-1. Install the Passport strategy: `npm install passport-<provider>`
-2. Add a case in `src/auth/passport.ts`
-3. Add routes in `src/routes/auth.ts`
-4. Add the provider config shape to the example config
+No code changes needed — just add a new entry under `auth.providers` in `config.yaml` with the provider's OIDC discovery URL, client credentials, and authorization rules. Any provider exposing a `.well-known/openid-configuration` endpoint works out of the box.

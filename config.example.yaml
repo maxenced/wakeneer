@@ -4,16 +4,28 @@ server:
 
 auth:
   providers:
-    - type: "google"
+    # Any OIDC-compliant provider works (Google, Microsoft, Keycloak, Authelia, etc.)
+    - name: "google"
+      discoveryUrl: "https://accounts.google.com/.well-known/openid-configuration"
       clientId: "your-google-client-id.apps.googleusercontent.com"
       clientSecret: "your-google-client-secret"
-    # - type: "microsoft"
-    #   clientId: "your-microsoft-client-id"
-    #   clientSecret: "your-microsoft-client-secret"
-    #   tenantId: "common"
+      scopes: ["openid", "email", "profile"]
+      authorization:
+        allowedEmails:
+          - "you@example.com"
+
+    # - name: "keycloak"
+    #   discoveryUrl: "https://keycloak.example.com/realms/myrealm/.well-known/openid-configuration"
+    #   clientId: "wakenerr"
+    #   clientSecret: "your-client-secret"
+    #   scopes: ["openid", "email", "profile"]
+    #   authorization:
+    #     # Authorize by claim value instead of (or in addition to) email allowlist
+    #     allowedClaim:
+    #       name: "groups"
+    #       values: ["wakenerr-users"]
+
   callbackBaseUrl: "http://localhost:3000"
-  allowedEmails:
-    - "you@example.com"
 
 services:
   - name: "Plex"
