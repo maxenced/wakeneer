@@ -43,7 +43,7 @@ export function createApp(config: AppConfig, monitor: Monitor, registry: Provide
     },
   ];
 
-  app.use('/auth', createAuthRoutes(registry));
+  app.use('/auth', createAuthRoutes(registry, config.auth.callbackBaseUrl));
   app.use('/', ...protect, createDashboardRoutes(monitor, config.services));
   app.use('/', ...protect, createWakeRoutes(monitor, config.services));
   app.use('/', ...protect, createSseRoutes(monitor));

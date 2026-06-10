@@ -53,7 +53,7 @@ function createTestApp(registry: ProviderRegistry) {
   app.set('view engine', 'ejs');
   app.set('views', 'src/views');
   app.use(session({ secret: 'test', resave: false, saveUninitialized: false }));
-  app.use('/auth', createAuthRoutes(registry));
+  app.use('/auth', createAuthRoutes(registry, 'http://localhost:3000'));
   return app;
 }
 

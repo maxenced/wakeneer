@@ -3,7 +3,7 @@ import { generators } from 'openid-client';
 import { logger } from '../logger.js';
 import type { ProviderRegistry } from '../auth/oidc.js';
 
-export function createAuthRoutes(registry: ProviderRegistry): Router {
+export function createAuthRoutes(registry: ProviderRegistry, callbackBaseUrl: string): Router {
   const router = Router();
 
   router.get('/login', (_req, res) => {
@@ -51,7 +51,7 @@ export function createAuthRoutes(registry: ProviderRegistry): Router {
     try {
       const params = entry.client.callbackParams(req);
       const tokenSet = await entry.client.callback(
-        `${req.protocol}://${req.get('host')}/auth/${req.params.provider}/callback`,
+        `${callbackBaseUrl}/auth/${req.params.provider}/callback`,
         params,
         {
           state: req.session.oidcState,
