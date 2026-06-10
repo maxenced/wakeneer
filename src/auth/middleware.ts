@@ -17,6 +17,7 @@ declare module 'express-session' {
     user?: SessionUser;
     oidcState?: string;
     oidcNonce?: string;
+    oidcCodeVerifier?: string;
   }
 }
 
