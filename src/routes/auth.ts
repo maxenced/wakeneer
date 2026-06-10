@@ -24,13 +24,18 @@ export function createAuthRoutes(registry: ProviderRegistry): Router {
 
     const state = generators.state();
     const nonce = generators.nonce();
+    const codeVerifier = generators.codeVerifier();
+    const codeChallenge = generators.codeChallenge(codeVerifier);
     req.session.oidcState = state;
     req.session.oidcNonce = nonce;
+    req.session.oidcCodeVerifier = codeVerifier;
 
     const authUrl = entry.client.authorizationUrl({
       scope: entry.config.scopes.join(' '),
       state,
       nonce,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
     res.redirect(authUrl);
@@ -48,7 +53,11 @@ export function createAuthRoutes(registry: ProviderRegistry): Router {
       const tokenSet = await entry.client.callback(
         `${req.protocol}://${req.get('host')}/auth/${req.params.provider}/callback`,
         params,
-        { state: req.session.oidcState, nonce: req.session.oidcNonce },
+        {
+          state: req.session.oidcState,
+          nonce: req.session.oidcNonce,
+          code_verifier: req.session.oidcCodeVerifier,
+        },
       );
 
       const claims = tokenSet.claims();
@@ -60,6 +69,7 @@ export function createAuthRoutes(registry: ProviderRegistry): Router {
       };
       delete req.session.oidcState;
       delete req.session.oidcNonce;
+      delete req.session.oidcCodeVerifier;
 
       logger.info('User logged in', { email: req.session.user.email, provider: req.params.provider });
       res.redirect('/');
