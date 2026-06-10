@@ -24,6 +24,9 @@ const providerSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
   scopes: z.array(z.string()).default(['openid', 'email', 'profile']),
+  tokenEndpointAuthMethod: z
+    .enum(['client_secret_basic', 'client_secret_post', 'none'])
+    .default('client_secret_post'),
   authorization: authorizationSchema,
 });
 
