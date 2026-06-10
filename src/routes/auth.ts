@@ -72,6 +72,15 @@ export function createAuthRoutes(registry: ProviderRegistry, callbackBaseUrl: st
       delete req.session.oidcCodeVerifier;
 
       logger.info('User logged in', { email: req.session.user.email, provider: req.params.provider });
+      logger.debug('OIDC login details', {
+        provider: req.params.provider,
+        claims,
+        scope: tokenSet.scope,
+        tokenType: tokenSet.token_type,
+        expiresAt: tokenSet.expires_at,
+        issuedAt: (claims as Record<string, unknown>).iat,
+        issuer: (claims as Record<string, unknown>).iss,
+      });
       res.redirect('/');
     } catch (err) {
       logger.warn('OIDC callback failed', { provider: req.params.provider, error: (err as Error).message });
