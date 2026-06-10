@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import express from 'express';
+import session from 'express-session';
 import request from 'supertest';
 import path from 'node:path';
 import { createDashboardRoutes } from '../../src/routes/dashboard.js';
@@ -21,6 +22,8 @@ describe('GET /', () => {
     const app = express();
     app.set('view engine', 'ejs');
     app.set('views', path.join(process.cwd(), 'src/views'));
+    app.use(session({ secret: 'test', resave: false, saveUninitialized: false }));
+    app.use((req, _res, next) => { req.session.user = { email: 'a@b.com', displayName: 'A', provider: 'x', claims: {} }; next(); });
     app.use('/', createDashboardRoutes(mockMonitor as any, services));
 
     const res = await request(app).get('/');

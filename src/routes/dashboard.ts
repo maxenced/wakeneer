@@ -17,7 +17,7 @@ export function createDashboardRoutes(monitor: Monitor, services: ServiceConfig[
       ...s,
       status: statuses.find((st) => st.name === s.name)?.status ?? 'down',
     }));
-    res.render('dashboard', { services: servicesWithStatus, user: req.user });
+    res.render('dashboard', { services: servicesWithStatus, user: req.session.user });
   });
 
   return router;
