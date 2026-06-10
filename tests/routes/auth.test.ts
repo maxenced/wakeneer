@@ -42,6 +42,8 @@ vi.mock('openid-client', async (importOriginal) => {
     generators: {
       state: () => 'mock-state',
       nonce: () => 'mock-nonce',
+      codeVerifier: () => 'mock-code-verifier',
+      codeChallenge: () => 'mock-code-challenge',
     },
   };
 });
