@@ -60,12 +60,20 @@ export function createAuthRoutes(registry: ProviderRegistry, callbackBaseUrl: st
         },
       );
 
-      const claims = tokenSet.claims();
+      let claims: Record<string, unknown> = tokenSet.claims() as Record<string, unknown>;
+
+      const claimName = entry.config.authorization.allowedClaim?.name;
+      if (claimName && !(claimName in claims) && tokenSet.access_token) {
+        logger.debug('Claim not in ID token, fetching userinfo', { claim: claimName, provider: req.params.provider });
+        const userinfo = await entry.client.userinfo(tokenSet.access_token);
+        claims = { ...claims, ...userinfo };
+      }
+
       req.session.user = {
         email: (claims.email as string) ?? '',
         displayName: (claims.name as string) ?? (claims.preferred_username as string) ?? '',
         provider: req.params.provider,
-        claims: claims as Record<string, unknown>,
+        claims,
       };
       delete req.session.oidcState;
       delete req.session.oidcNonce;
