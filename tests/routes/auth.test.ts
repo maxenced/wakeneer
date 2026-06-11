@@ -88,4 +88,84 @@ describe('auth routes', () => {
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('/auth/login');
   });
+
+  it('callback fetches userinfo when allowedClaim is missing from ID token', async () => {
+    const userinfoClient = {
+      authorizationUrl: vi.fn(() => 'https://auth.example.com/authorize?redirect'),
+      callbackParams: vi.fn(() => ({ code: 'test-code', state: 'mock-state' })),
+      callback: vi.fn(() => ({
+        claims: () => ({ email: 'user@example.com', name: 'Test User', sub: '123' }),
+        access_token: 'mock-access-token',
+      })),
+      userinfo: vi.fn(() => Promise.resolve({ groups: ['wakeonlan-users'] })),
+    };
+
+    const registry: ProviderRegistry = new Map([
+      [
+        'authelia',
+        {
+          client: userinfoClient as any,
+          config: {
+            name: 'authelia',
+            discoveryUrl: 'https://auth.example.com/.well-known/openid-configuration',
+            clientId: 'cid',
+            clientSecret: 'csec',
+            scopes: ['openid', 'email', 'profile', 'groups'],
+            tokenEndpointAuthMethod: 'client_secret_post',
+            authorization: { allowedClaim: { name: 'groups', values: ['wakeonlan-users'] } },
+          },
+        },
+      ],
+    ]);
+
+    const app = createTestApp(registry);
+
+    const agent = request.agent(app);
+    await agent.get('/auth/authelia');
+    const res = await agent.get('/auth/authelia/callback');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/');
+    expect(userinfoClient.userinfo).toHaveBeenCalledWith('mock-access-token');
+  });
+
+  it('callback does not fetch userinfo when claim is already in ID token', async () => {
+    const userinfoClient = {
+      authorizationUrl: vi.fn(() => 'https://auth.example.com/authorize?redirect'),
+      callbackParams: vi.fn(() => ({ code: 'test-code', state: 'mock-state' })),
+      callback: vi.fn(() => ({
+        claims: () => ({ email: 'user@example.com', name: 'Test User', sub: '123', groups: ['admin'] }),
+        access_token: 'mock-access-token',
+      })),
+      userinfo: vi.fn(),
+    };
+
+    const registry: ProviderRegistry = new Map([
+      [
+        'authelia',
+        {
+          client: userinfoClient as any,
+          config: {
+            name: 'authelia',
+            discoveryUrl: 'https://auth.example.com/.well-known/openid-configuration',
+            clientId: 'cid',
+            clientSecret: 'csec',
+            scopes: ['openid', 'email', 'profile', 'groups'],
+            tokenEndpointAuthMethod: 'client_secret_post',
+            authorization: { allowedClaim: { name: 'groups', values: ['admin'] } },
+          },
+        },
+      ],
+    ]);
+
+    const app = createTestApp(registry);
+
+    const agent = request.agent(app);
+    await agent.get('/auth/authelia');
+    const res = await agent.get('/auth/authelia/callback');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/');
+    expect(userinfoClient.userinfo).not.toHaveBeenCalled();
+  });
 });
