@@ -9,10 +9,15 @@ export function createSseRoutes(monitor: Monitor): Router {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     });
 
     const statuses = monitor.getAllStatuses();
     res.write(`data: ${JSON.stringify({ type: 'init', statuses })}\n\n`);
+
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 15_000);
 
     const onStatusChange = (name: string, status: string) => {
       res.write(`data: ${JSON.stringify({ type: 'update', name, status })}\n\n`);
@@ -20,6 +25,7 @@ export function createSseRoutes(monitor: Monitor): Router {
 
     monitor.on('statusChange', onStatusChange);
     req.on('close', () => {
+      clearInterval(heartbeat);
       monitor.off('statusChange', onStatusChange);
     });
   });
@@ -32,9 +38,14 @@ export function createSseRoutes(monitor: Monitor): Router {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     });
 
     res.write(`data: ${JSON.stringify({ type: 'status', name: serviceName, status })}\n\n`);
+
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 15_000);
 
     const onStatusChange = (name: string, newStatus: string) => {
       if (name === serviceName) {
@@ -44,6 +55,7 @@ export function createSseRoutes(monitor: Monitor): Router {
 
     monitor.on('statusChange', onStatusChange);
     req.on('close', () => {
+      clearInterval(heartbeat);
       monitor.off('statusChange', onStatusChange);
     });
   });

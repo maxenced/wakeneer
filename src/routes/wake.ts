@@ -24,6 +24,7 @@ export function createWakeRoutes(monitor: Monitor, services: ServiceConfig[]): R
     if (status !== 'ready') {
       logger.info('Wake triggered', { service: service.name, by: user?.email });
       await sendWol(service.mac);
+      monitor.triggerWake(service.name);
     }
     res.redirect(`/wait/${service.name}`);
   });

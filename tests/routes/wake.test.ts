@@ -12,6 +12,7 @@ import { sendWol } from '../../src/wol/wol.js';
 
 const mockMonitor = {
   getStatus: vi.fn().mockReturnValue('down'),
+  triggerWake: vi.fn(),
 };
 
 const services = [
