@@ -15,6 +15,7 @@ interface ServiceConfig {
 interface ServiceState {
   status: ServiceStatus;
   retryWindowStart: number | null;
+  checking: boolean;
 }
 
 const RETRY_WINDOW_MS = 60_000;
@@ -32,7 +33,7 @@ export class Monitor extends EventEmitter {
     this.services = services;
     this.pollingIntervalMs = pollingIntervalSeconds * 1000;
     for (const service of services) {
-      this.states.set(service.name, { status: 'down', retryWindowStart: null });
+      this.states.set(service.name, { status: 'down', retryWindowStart: null, checking: false });
     }
   }
 
@@ -55,6 +56,15 @@ export class Monitor extends EventEmitter {
     return this.services.map((s) => ({ name: s.name, status: this.getStatus(s.name) }));
   }
 
+  triggerWake(name: string): void {
+    const state = this.states.get(name);
+    if (!state) return;
+    state.retryWindowStart = Date.now();
+    logger.info('Wake triggered, starting aggressive polling', { service: name });
+    const service = this.services.find((s) => s.name === name);
+    if (service) this.checkService(service);
+  }
+
   isInRetryWindow(name: string): boolean {
     const state = this.states.get(name);
     if (!state || state.retryWindowStart === null) return false;
@@ -72,6 +82,17 @@ export class Monitor extends EventEmitter {
 
   private async checkService(service: ServiceConfig): Promise<void> {
     const state = this.states.get(service.name)!;
+    if (state.checking) return;
+    state.checking = true;
+
+    try {
+      await this.doCheck(service, state);
+    } finally {
+      state.checking = false;
+    }
+  }
+
+  private async doCheck(service: ServiceConfig, state: ServiceState): Promise<void> {
     const pingOk = await pingHost(service.host);
 
     let newStatus: ServiceStatus;
