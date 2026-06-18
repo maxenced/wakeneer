@@ -48,6 +48,10 @@ export class Monitor extends EventEmitter {
     if (this.retryIntervalId) clearInterval(this.retryIntervalId);
   }
 
+  hasService(name: string): boolean {
+    return this.states.has(name);
+  }
+
   getStatus(name: string): ServiceStatus {
     return this.states.get(name)?.status ?? 'down';
   }
