@@ -5,6 +5,9 @@ import { EventEmitter } from 'node:events';
 import { createSseRoutes } from '../../src/routes/sse.js';
 
 class MockMonitor extends EventEmitter {
+  hasService(name: string) {
+    return name === 'Plex';
+  }
   getStatus(name: string) {
     return 'down';
   }

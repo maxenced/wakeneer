@@ -32,7 +32,6 @@ export function createSseRoutes(monitor: Monitor): Router {
 
   router.get('/sse/:service', (req, res) => {
     const serviceName = req.params.service;
-    const status = monitor.getStatus(serviceName);
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -41,6 +40,13 @@ export function createSseRoutes(monitor: Monitor): Router {
       'X-Accel-Buffering': 'no',
     });
 
+    if (!monitor.hasService(serviceName)) {
+      res.write(`data: ${JSON.stringify({ type: 'status', name: serviceName, status: 'unknown target' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    const status = monitor.getStatus(serviceName);
     res.write(`data: ${JSON.stringify({ type: 'status', name: serviceName, status })}\n\n`);
 
     const heartbeat = setInterval(() => {

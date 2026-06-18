@@ -38,8 +38,8 @@
     </div>
   </main>
   <script>
-    window.__SERVICE_NAME__ = "<%= service.name %>";
-    window.__SERVICE_URL__ = "<%= service.url %>";
+    window.__SERVICE_NAME__ = <%- JSON.stringify(service.name) %>;
+    window.__SERVICE_URL__ = <%- JSON.stringify(service.url) %>;
   </script>
   <script src="/client.js"></script>
 </body>
